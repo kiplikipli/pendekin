@@ -1,4 +1,5 @@
-import { Link, Outlet, createRootRoute, createRoute, createRouter } from '@tanstack/react-router'
+import { useEffect } from 'react'
+import { Link, Outlet, createRootRoute, createRoute, createRouter, useNavigate } from '@tanstack/react-router'
 import { useAuth } from './auth'
 import { AdminPage, DashboardPage, HomePage } from './pages'
 import { useSignInDialog } from './sign-in-modal'
@@ -22,12 +23,27 @@ function AppShell() {
   )
 }
 
+function LegacyHomeRedirect({ showSignIn }: { showSignIn?: boolean }) {
+  const navigate = useNavigate()
+  const { profile } = useAuth()
+  const { openSignIn } = useSignInDialog()
+
+  useEffect(() => {
+    if (showSignIn && !profile) openSignIn()
+    void navigate({ to: '/', replace: true })
+  }, [navigate, openSignIn, profile, showSignIn])
+
+  return <HomePage />
+}
+
 const rootRoute = createRootRoute({ component: AppShell })
 const homeRoute = createRoute({ getParentRoute: () => rootRoute, path: '/', component: HomePage })
+const oldLoginRoute = createRoute({ getParentRoute: () => rootRoute, path: '/login', component: () => <LegacyHomeRedirect showSignIn /> })
+const oldStatusRoute = createRoute({ getParentRoute: () => rootRoute, path: '/status', component: LegacyHomeRedirect })
 const dashboardRoute = createRoute({ getParentRoute: () => rootRoute, path: '/dashboard', component: DashboardPage })
 const adminRoute = createRoute({ getParentRoute: () => rootRoute, path: '/admin', component: AdminPage })
 
-const routeTree = rootRoute.addChildren([homeRoute, dashboardRoute, adminRoute])
+const routeTree = rootRoute.addChildren([homeRoute, oldLoginRoute, oldStatusRoute, dashboardRoute, adminRoute])
 export const router = createRouter({ routeTree })
 
 declare module '@tanstack/react-router' {

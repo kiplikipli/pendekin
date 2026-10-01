@@ -1,22 +1,15 @@
 # Pendekin
 
-A pnpm workspace for a future URL shortener. The React SPA deploys to Cloudflare Pages and calls a Hono API on Cloudflare Workers. The Worker connects to Cloud Firestore through its REST API using a service account.
+A comic-style URL shortener with a React frontend on Cloudflare Pages, a Hono API on Cloudflare Workers, Firebase Authentication, and Cloud Firestore.
 
-## Live Cloudflare projects
+## What is implemented
 
-- Frontend: [pendekin-web.pages.dev](https://pendekin-web.pages.dev)
-- API: [pendekin-api.muhammadzulkifli79.workers.dev/api/health](https://pendekin-api.muhammadzulkifli79.workers.dev/api/health)
-
-Both projects are connected to `kiplikipli/pendekin` on `main`. The frontend's `/status` page checks the Worker and Firestore. Firestore will show `not_configured` until `FIREBASE_SERVICE_ACCOUNT_JSON` is added as a Worker secret.
-
-## Workspace
-
-| App | Stack | Deploy target |
-| --- | --- | --- |
-| `apps/web` | Vite, React, TanStack Router, TanStack Query | Cloudflare Pages |
-| `apps/api` | Hono, Firestore REST | Cloudflare Workers |
-
-Firestore link documents will live in the `pendekin/data/links` collection, under the `pendekin/` namespace. The current app only checks connectivity; it does not create or resolve short links yet.
+- Google sign-in in an accessible modal with Firebase Authentication.
+- A general-user dashboard to create, copy, list, activate, and pause short links.
+- A deliberately empty admin page. The API recognizes the Firebase `admin: true` custom claim and prevents admins from using the general-user link endpoints.
+- Public redirects at `https://<worker-origin>/r/<code>`. Paused links return 404.
+- All Firestore queries and writes run in the Worker with its service account. The browser never imports or calls Firestore.
+- The former `/status` page and temporary Firestore status endpoint are removed. `/api/health` remains for operational checks.
 
 ## Local development
 
@@ -24,30 +17,56 @@ Requires Node.js 22+ and pnpm 11.
 
 ```sh
 pnpm install
+cp apps/web/.env.example apps/web/.env.local
+cp apps/api/.dev.vars.example apps/api/.dev.vars
 pnpm dev
 ```
 
-Open `http://localhost:5173/status`. Vite proxies `/api` to the Worker at `http://localhost:8787`. The Hono health endpoint works without Firebase credentials. Firestore status reports `not_configured` until a service account is supplied.
+The provided public Firebase web app config is already in `apps/web/src/firebase.ts`. Set `VITE_API_BASE_URL` in `apps/web/.env.local` if you are not using Vite's local proxy, and put the Worker service account JSON in `apps/api/.dev.vars`. Open `http://localhost:5173`. Vite proxies `/api` and `/r` to the local Worker at `http://localhost:8787`.
 
-Run `pnpm build` and `pnpm typecheck` to verify both apps. The API build is a Wrangler dry run and does not deploy.
+Run `pnpm build` and `pnpm typecheck` for focused build and TypeScript checks. The API build is a Wrangler dry run.
 
 ## Firebase setup
 
-The provided Firebase client configuration identifies project `iseng-955ec`. The Worker project ID is already set in `apps/api/wrangler.jsonc`. A browser API key cannot authorize trusted server-side Firestore access, so the Worker needs a **service account JSON key**:
+1. The Firebase web app config for project `iseng-955ec` is in `apps/web/src/firebase.ts`. Its identifiers are public and can be overridden with `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, and `VITE_FIREBASE_APP_ID` for another project.
+2. Enable **Google** under Authentication → Sign-in method. Add `localhost` and your Pages hostname to Authentication → Settings → Authorized domains. Use hostnames without protocol or port.
+3. Enable Cloud Firestore. Create a service account with Firestore access and set its full JSON as the **Worker secret** `FIREBASE_SERVICE_ACCOUNT_JSON`. The Worker project ID is already `iseng-955ec` in `apps/api/wrangler.jsonc`. For local development, put the JSON on one line in `apps/api/.dev.vars`.
+4. In the project's **existing** Firestore ruleset, deny client access to the Pendekin links path (and check that no broader match grants access):
 
-1. Enable Cloud Firestore for `iseng-955ec` in the Firebase console, if it is not already enabled.
-2. Create a service account with Firestore access and download its JSON key.
-3. For local development, create `apps/api/.dev.vars` from `apps/api/.dev.vars.example` and put the full JSON on one line in `FIREBASE_SERVICE_ACCOUNT_JSON`. This file is ignored by Git.
-4. For the deployed Worker, set `FIREBASE_SERVICE_ACCOUNT_JSON` as a **Worker secret** in Cloudflare. You can use `pnpm --filter @pendekin/api exec wrangler secret put FIREBASE_SERVICE_ACCOUNT_JSON` after deploying the Worker, or add it in Workers & Pages → the Worker → Settings → Variables and Secrets.
+   ```text
+   match /pendekin/data/links/{code} {
+     allow read, write: if false;
+   }
+   ```
 
-The public Firebase web config is intentionally not used by the frontend. All Firestore requests go through the Worker, keeping the service account out of the browser. The temporary `/api/firestore/status` endpoint only checks the collection and returns no records.
+   Merge this into the existing `service cloud.firestore` block. Do not replace the project's entire ruleset if it serves other apps. The Worker service account uses IAM and is unaffected by Firestore client rules.
+
+The Firebase web config is public identification for the web app; it does **not** grant read or write permission by itself. Firestore security rules control browser SDK access. This app uses the browser SDK only for Authentication and sends ID tokens to the Worker. Never put the service account JSON in Pages or any `VITE_` variable.
+
+### Assign an admin
+
+After a user signs in once, use a trusted environment with the Firebase Admin SDK and a service account to set the custom claim on that user's UID:
+
+```js
+import { initializeApp, cert } from 'firebase-admin/app'
+import { getAuth } from 'firebase-admin/auth'
+
+initializeApp({ credential: cert(serviceAccountJson) })
+const user = await getAuth().getUserByEmail('admin@example.com')
+await getAuth().setCustomUserClaims(user.uid, {
+  ...user.customClaims,
+  admin: true,
+})
+```
+
+Replace the email and supply `serviceAccountJson` securely in that trusted environment. Custom claim changes appear after the user signs in again or refreshes their ID token. The Worker verifies the signed token before trusting the role. Admin access is not based on a frontend flag.
+
+## Firestore link records
+
+Links live in `pendekin/data/links/{code}`. Each record has `ownerId` (Firebase UID), `slug`, `targetUrl`, `active`, and `createdAt`. The Worker scopes list and status changes to the verified UID. Generated short URLs use the Worker's public origin; connect a custom domain to the Worker later if you want a shorter branded domain.
 
 ## Cloudflare deployment
 
-1. Deploy the Worker from the repo root with `pnpm --filter @pendekin/api run deploy`. The Worker name is `pendekin-api`. Record its public `https://...workers.dev` origin. If using Cloudflare Workers Builds instead of local deployment, set its build variable `PNPM_VERSION=11.28.3` too.
-2. Create a Cloudflare Pages project named `pendekin-web` connected to this repository. Use the repository root as the build root, `pnpm --filter @pendekin/web build` as the build command, and `apps/web/dist` as the build output directory. Set `PNPM_VERSION=11.28.3` in Pages build environment variables, and set `VITE_API_BASE_URL` to the Worker's public origin, without `/api` at the end. This is a build-time value, so redeploy Pages after changing it.
-3. Open the Pages site's `/status` route. It should show `ok` for the Worker and either `Connected` for Firestore or the pending-credential message. Direct navigation to `/status` works because Pages serves SPA routes through `index.html`.
+The existing projects are `pendekin-web.pages.dev` and `pendekin-api.muhammadzulkifli79.workers.dev`. Both are connected to `kiplikipli/pendekin` on `main`.
 
-Alternatively, after creating the Pages project, deploy from your machine with `pnpm --filter @pendekin/web run deploy`. Set `VITE_API_BASE_URL` in `apps/web/.env.local` before building; see `apps/web/.env.example`.
-
-Never put a service account JSON key in the Pages project or a `VITE_` variable: Vite exposes those values to the browser.
+Deploy the Worker with `pnpm --filter @pendekin/api deploy` and set `FIREBASE_SERVICE_ACCOUNT_JSON` as a Worker secret. Build Pages from the repo root with `pnpm --filter @pendekin/web build`, output `apps/web/dist`, and set `VITE_API_BASE_URL` to the Worker's origin (without `/api`) using the committed Firebase web config (or set the four optional overrides). These are build-time values, so rebuild Pages when they change. Keep `PNPM_VERSION=11.28.3` in the Cloudflare build environment.

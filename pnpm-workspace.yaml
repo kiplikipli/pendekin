@@ -3,3 +3,5 @@ packages:
 allowBuilds:
   esbuild: true
   workerd: true
+  '@firebase/util': true
+  protobufjs: true

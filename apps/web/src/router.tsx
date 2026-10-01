@@ -1,43 +1,33 @@
 import { Link, Outlet, createRootRoute, createRoute, createRouter } from '@tanstack/react-router'
-import { ApiStatus } from './status'
+import { useAuth } from './auth'
+import { AdminPage, DashboardPage, HomePage } from './pages'
+import { useSignInDialog } from './sign-in-modal'
 
-const rootRoute = createRootRoute({
-  component: () => (
+function AppShell() {
+  const { user, profile, signOutUser } = useAuth()
+  const { openSignIn } = useSignInDialog()
+  return (
     <div className="shell">
       <header className="header">
-        <Link to="/" className="brand">pendekin</Link>
+        <Link to="/" className="brand" aria-label="Pendekin home"><span className="brand-mark" aria-hidden="true">✳</span> pendekin<span className="brand-period">.</span></Link>
         <nav aria-label="Main navigation">
           <Link to="/" activeProps={{ className: 'active' }}>Home</Link>
-          <Link to="/status" activeProps={{ className: 'active' }}>Status</Link>
+          {profile && <Link to={profile.role === 'admin' ? '/admin' : '/dashboard'} activeProps={{ className: 'active' }}>{profile.role === 'admin' ? 'Admin' : 'My links'}</Link>}
+          {user ? <button className="nav-button" onClick={() => void signOutUser()}>Sign out</button> : <button className="nav-login" onClick={openSignIn}>Sign in <span aria-hidden="true">↗</span></button>}
         </nav>
       </header>
       <main><Outlet /></main>
-      <footer>Short links are coming soon.</footer>
+      <footer><span>© {new Date().getFullYear()} Pendekin</span><span>Little links, lots of possibility <span aria-hidden="true">✦</span></span></footer>
     </div>
-  ),
-})
+  )
+}
 
-const homeRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/',
-  component: () => (
-    <section className="hero">
-      <p className="eyebrow">A small start for shorter links</p>
-      <h1>Make every link easier to share.</h1>
-      <p className="lead">The app shell is ready. Link creation and Firebase storage come next.</p>
-      <Link to="/status" className="button">Check API connection</Link>
-    </section>
-  ),
-})
+const rootRoute = createRootRoute({ component: AppShell })
+const homeRoute = createRoute({ getParentRoute: () => rootRoute, path: '/', component: HomePage })
+const dashboardRoute = createRoute({ getParentRoute: () => rootRoute, path: '/dashboard', component: DashboardPage })
+const adminRoute = createRoute({ getParentRoute: () => rootRoute, path: '/admin', component: AdminPage })
 
-const statusRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/status',
-  component: ApiStatus,
-})
-
-const routeTree = rootRoute.addChildren([homeRoute, statusRoute])
-
+const routeTree = rootRoute.addChildren([homeRoute, dashboardRoute, adminRoute])
 export const router = createRouter({ routeTree })
 
 declare module '@tanstack/react-router' {

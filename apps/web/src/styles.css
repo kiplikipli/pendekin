@@ -105,7 +105,7 @@ h1, h2, h3 { font-family: 'Bricolage Grotesque', sans-serif; }
 .created-link a { overflow-wrap: anywhere; font-weight: 700; }
 .created-link p { width: 100%; margin: 0; font-weight: 700; }
 .list-notice { margin: 0 0 18px; padding: 12px 16px; border: 2px solid #17242b; border-radius: 10px; background: #cceca9; font-weight: 700; overflow-wrap: anywhere; }
-.link-list { display: grid; gap: 16px; }
+.link-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 .api-keys { margin-top: 58px; padding: 28px; border: 3px solid #17242b; border-radius: 20px; background: #fff8d9; box-shadow: 6px 6px 0 #17242b; }
 .api-keys-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
 .api-keys-heading h2 { margin: 2px 0 6px; font-size: clamp(2rem, 4vw, 2.7rem); letter-spacing: -.06em; }
@@ -132,7 +132,7 @@ h1, h2, h3 { font-family: 'Bricolage Grotesque', sans-serif; }
 .link-card { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px 25px; align-items: center; padding: 22px 25px; border: 3px solid #17242b; border-radius: 17px; background: #fff; box-shadow: 5px 5px 0 #17242b; }
 .link-main { min-width: 0; flex: 1; }
 .link-title-row { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
-.short-url { overflow: hidden; max-width: 100%; text-overflow: ellipsis; white-space: nowrap; font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.2rem; font-weight: 800; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+.short-url { min-width: 0; overflow: hidden; max-width: 100%; text-overflow: ellipsis; white-space: nowrap; font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.2rem; font-weight: 800; text-decoration-thickness: 2px; text-underline-offset: 4px; }
 .status-pill { display: inline-flex; align-items: center; padding: 5px 11px; border: 2px solid #17242b; border-radius: 99px; font-size: .75rem; font-weight: 800; white-space: nowrap; }
 .is-active { background: #cceca9; }
 .is-paused { background: #f7d1c9; }
@@ -188,7 +188,7 @@ h1, h2, h3 { font-family: 'Bricolage Grotesque', sans-serif; }
   .dashboard { padding: 50px 0 75px; }
   .dashboard-sticker { display: none; }
   .create-row { flex-direction: column; }
-  .link-card { align-items: stretch; flex-direction: column; }
+  .link-card { align-items: stretch; flex-direction: column; flex-wrap: nowrap; }
   .link-actions { justify-content: flex-start; width: 100%; }
   .link-actions > .action-button, .link-more { flex: 1; }
   .link-more summary { width: 100%; }

@@ -44,10 +44,10 @@ The public Firebase web config is intentionally not used by the frontend. All Fi
 
 ## Cloudflare deployment
 
-1. Deploy the Worker from the repo root with `pnpm --filter @pendekin/api deploy`. The Worker name is `pendekin-api`. Record its public `https://...workers.dev` origin. If using Cloudflare Workers Builds instead of local deployment, set its build variable `PNPM_VERSION=11.28.3` too.
+1. Deploy the Worker from the repo root with `pnpm --filter @pendekin/api run deploy`. The Worker name is `pendekin-api`. Record its public `https://...workers.dev` origin. If using Cloudflare Workers Builds instead of local deployment, set its build variable `PNPM_VERSION=11.28.3` too.
 2. Create a Cloudflare Pages project named `pendekin-web` connected to this repository. Use the repository root as the build root, `pnpm --filter @pendekin/web build` as the build command, and `apps/web/dist` as the build output directory. Set `PNPM_VERSION=11.28.3` in Pages build environment variables, and set `VITE_API_BASE_URL` to the Worker's public origin, without `/api` at the end. This is a build-time value, so redeploy Pages after changing it.
 3. Open the Pages site's `/status` route. It should show `ok` for the Worker and either `Connected` for Firestore or the pending-credential message. Direct navigation to `/status` works because Pages serves SPA routes through `index.html`.
 
-Alternatively, after creating the Pages project, deploy from your machine with `pnpm --filter @pendekin/web deploy`. Set `VITE_API_BASE_URL` in `apps/web/.env.local` before building; see `apps/web/.env.example`.
+Alternatively, after creating the Pages project, deploy from your machine with `pnpm --filter @pendekin/web run deploy`. Set `VITE_API_BASE_URL` in `apps/web/.env.local` before building; see `apps/web/.env.example`.
 
 Never put a service account JSON key in the Pages project or a `VITE_` variable: Vite exposes those values to the browser.

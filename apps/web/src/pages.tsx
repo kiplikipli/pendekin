@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Navigate } from '@tanstack/react-router'
 import { apiRequest, type Profile, type ShortLink } from './api'
@@ -42,11 +42,121 @@ export function HomePage() {
   )
 }
 
+function LinkCard({ link, queryKey, onDeleted }: { link: ShortLink; queryKey: string[]; onDeleted: (message: string) => void }) {
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+  const [expanded, setExpanded] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [notice, setNotice] = useState('')
+  const [noticeError, setNoticeError] = useState(false)
+  const moreRef = useRef<HTMLDetailsElement>(null)
+  const confirmRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => { if (confirmDelete) confirmRef.current?.focus() }, [confirmDelete])
+  let hostname = link.targetUrl
+  try {
+    hostname = new URL(link.targetUrl).hostname
+  } catch {
+    // Keep the stored destination visible if an older link is malformed.
+  }
+
+  const updateLink = useMutation({
+    mutationFn: async (active: boolean) =>
+      apiRequest<{ link: ShortLink }>('/api/links/' + link.slug, await user!.getIdToken(), {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ active }),
+      }),
+    onSuccess: ({ link: updated }) => {
+      queryClient.setQueryData<{ links: ShortLink[] }>(queryKey, (current) =>
+        current ? { links: current.links.map((item) => item.id === updated.id ? { ...updated, shortUrl: link.shortUrl } : item) } : current)
+      setNotice(updated.active ? 'Link active. Visitors can open it again.' : 'Link paused. Visitors can no longer open it.')
+      setNoticeError(false)
+      void queryClient.invalidateQueries({ queryKey })
+    },
+  })
+  const deleteLink = useMutation({
+    mutationFn: async () =>
+      apiRequest<{ deleted: boolean }>('/api/links/' + link.slug, await user!.getIdToken(), { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.setQueryData<{ links: ShortLink[] }>(queryKey, (current) =>
+        current ? { links: current.links.filter((item) => item.id !== link.id) } : current)
+      onDeleted('Deleted ' + link.shortUrl + '. It no longer redirects.')
+      void queryClient.invalidateQueries({ queryKey })
+    },
+  })
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(link.shortUrl)
+      setNotice('Short link copied.')
+      setNoticeError(false)
+    } catch {
+      setNotice('Could not copy the short link. Select the address above and copy it instead.')
+      setNoticeError(true)
+    }
+  }
+
+  return (
+    <article className="link-card">
+      <div className="link-main">
+        <div className="link-title-row">
+          {link.active
+            ? <a href={link.shortUrl} target="_blank" rel="noreferrer" className="short-url">{link.shortUrl}</a>
+            : <span className="short-url">{link.shortUrl}</span>}
+          <span className={'status-pill ' + (link.active ? 'is-active' : 'is-paused')}>{link.active ? 'Active' : 'Paused'}</span>
+        </div>
+        <div className="destination">
+          <span className="destination-host">{hostname}</span>
+          <p id={'destination-' + link.slug} className={'target-url ' + (expanded ? 'is-expanded' : '')}>{link.targetUrl}</p>
+          <button className="text-button" type="button" aria-controls={'destination-' + link.slug} aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+            {expanded ? 'Hide full URL' : 'Show full URL'}
+          </button>
+        </div>
+        {link.active ? <small>{link.createdAt ? new Date(link.createdAt).toLocaleDateString() : 'Date unavailable'}</small>
+          : <small>Paused links do not redirect · {link.createdAt ? new Date(link.createdAt).toLocaleDateString() : 'Date unavailable'}</small>}
+      </div>
+      <div className="link-actions">
+        <button className="action-button" type="button" aria-label={'Copy ' + link.shortUrl} onClick={() => void copy()}>Copy</button>
+        <button className="action-button secondary" type="button"
+          aria-label={(link.active ? 'Pause ' : 'Activate ') + link.shortUrl}
+          disabled={updateLink.isPending || deleteLink.isPending || confirmDelete}
+          onClick={() => { setNotice(''); updateLink.mutate(!link.active) }}>
+          {updateLink.isPending ? (link.active ? 'Pausing…' : 'Activating…') : (link.active ? 'Pause' : 'Activate')}
+        </button>
+        <details className="link-more" ref={moreRef}>
+          <summary className="action-button secondary" aria-label={'More actions for ' + link.shortUrl}>More</summary>
+          <div className="link-more-menu">
+            <button type="button" disabled={updateLink.isPending || deleteLink.isPending} onClick={() => { moreRef.current?.removeAttribute('open'); setConfirmDelete(true); setNotice('') }}>Delete link</button>
+          </div>
+        </details>
+      </div>
+      {(notice || updateLink.isError) && <p className={'link-feedback ' + (noticeError || updateLink.isError ? 'error' : '')}
+        role={noticeError || updateLink.isError ? 'alert' : 'status'}>
+        {updateLink.isError ? 'Could not change this link. Try again.' : notice}
+      </p>}
+      {confirmDelete && <div className="delete-confirm">
+        <p><strong>Delete this link permanently?</strong> {link.shortUrl} will stop redirecting to {hostname}. This cannot be undone.</p>
+        <div className="delete-confirm-actions">
+          <button ref={confirmRef} className="action-button secondary" type="button" disabled={deleteLink.isPending} onClick={() => { setConfirmDelete(false); moreRef.current?.querySelector('summary')?.focus() }}>Keep link</button>
+          <button className="action-button danger" type="button" aria-label={'Delete ' + link.shortUrl + ' permanently'} disabled={deleteLink.isPending} onClick={() => deleteLink.mutate()}>
+            {deleteLink.isPending ? 'Deleting…' : 'Delete permanently'}
+          </button>
+        </div>
+        {deleteLink.isError && <p className="form-message error" role="alert">Could not delete this link. Try again.</p>}
+      </div>}
+    </article>
+  )
+}
+
 function LinkDashboard({ profile }: { profile: Profile }) {
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const [targetUrl, setTargetUrl] = useState('')
-  const [copied, setCopied] = useState<string | null>(null)
+  const [createdLink, setCreatedLink] = useState<ShortLink | null>(null)
+  const [createdCopyMessage, setCreatedCopyMessage] = useState('')
+  const [listNotice, setListNotice] = useState('')
+  const listNoticeRef = useRef<HTMLParagraphElement>(null)
+  useEffect(() => { if (listNotice) listNoticeRef.current?.focus() }, [listNotice])
   const queryKey = ['links', profile.uid]
 
   const linksQuery = useQuery({
@@ -59,34 +169,32 @@ function LinkDashboard({ profile }: { profile: Profile }) {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ targetUrl: url }),
     }),
-    onSuccess: () => {
+    onSuccess: ({ link }) => {
       setTargetUrl('')
+      setCreatedLink(link)
+      setCreatedCopyMessage('')
+      queryClient.setQueryData<{ links: ShortLink[] }>(queryKey, (current) =>
+        current ? { links: [link, ...current.links] } : current)
       void queryClient.invalidateQueries({ queryKey })
     },
-  })
-  const updateLink = useMutation({
-    mutationFn: async ({ slug, active }: { slug: string; active: boolean }) =>
-      apiRequest<{ link: ShortLink }>(`/api/links/${slug}`, await user!.getIdToken(), {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ active }),
-      }),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey }),
   })
 
   const links = linksQuery.data?.links ?? []
   const activeCount = links.filter((link) => link.active).length
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (targetUrl.trim()) createLink.mutate(targetUrl.trim())
+    if (targetUrl.trim()) {
+      setCreatedLink(null)
+      createLink.mutate(targetUrl.trim())
+    }
   }
-  const copy = async (link: ShortLink) => {
+  const copyCreated = async () => {
+    if (!createdLink) return
     try {
-      await navigator.clipboard.writeText(link.shortUrl)
-      setCopied(link.slug)
-      window.setTimeout(() => setCopied(null), 1800)
+      await navigator.clipboard.writeText(createdLink.shortUrl)
+      setCreatedCopyMessage('Copied!')
     } catch {
-      setCopied(null)
+      setCreatedCopyMessage('Could not copy. Select the short link and copy it instead.')
     }
   }
 
@@ -95,20 +203,20 @@ function LinkDashboard({ profile }: { profile: Profile }) {
       <div className="dashboard-heading"><div><span className="eyebrow">Your link space</span><h1>My tiny links<span className="title-dot">.</span></h1><p>Make a link, share it, or put it on pause.</p></div><div className="dashboard-sticker" aria-hidden="true">YOUR<br />LINKS! <span>✦</span></div></div>
       <form className="create-form" onSubmit={submit}>
         <label htmlFor="target-url">Have a long link? Paste it here!</label>
-        <div className="create-row"><input id="target-url" type="url" placeholder="https://example.com/a-really-long-link" value={targetUrl} onChange={(event) => setTargetUrl(event.target.value)} required /><button className="button button-primary" disabled={createLink.isPending}>{createLink.isPending ? 'Making…' : 'Make it tiny ↗'}</button></div>
+        <div className="create-row"><input id="target-url" type="url" maxLength={2048} placeholder="https://example.com/a-really-long-link" value={targetUrl} onChange={(event) => setTargetUrl(event.target.value)} required /><button className="button button-primary" disabled={createLink.isPending}>{createLink.isPending ? 'Making…' : 'Make it tiny ↗'}</button></div>
         {createLink.isError && <p className="form-message error" role="alert">{createLink.error.message}</p>}
+        {createdLink && <div className="created-link" role="status">
+          <div><strong>Your link is ready</strong><a href={createdLink.shortUrl} target="_blank" rel="noreferrer">{createdLink.shortUrl}</a></div>
+          <button className="action-button" type="button" onClick={() => void copyCreated()}>Copy link</button>
+          {createdCopyMessage && <p>{createdCopyMessage}</p>}
+        </div>}
       </form>
       <div className="list-heading"><div><h2>All your links</h2><p>{links.length} total · {activeCount} active</p></div><span className="list-doodle" aria-hidden="true">✳</span></div>
+      {listNotice && <p ref={listNoticeRef} tabIndex={-1} className="list-notice" role="status">{listNotice}</p>}
       {linksQuery.isPending ? <div className="empty-state">Gathering your links…</div>
         : linksQuery.isError ? <div className="empty-state error" role="alert">{linksQuery.error.message}</div>
         : links.length === 0 ? <div className="empty-state"><span aria-hidden="true">✦</span><h3>Nothing here yet!</h3><p>Your first tiny link will show up right here.</p></div>
-        : <div className="link-list">{links.map((link) => (
-          <article className="link-card" key={link.id}>
-            <div className="link-main"><div className="link-title-row"><a href={link.shortUrl} target="_blank" rel="noreferrer" className="short-url">{link.shortUrl}</a><span className={`status-pill ${link.active ? 'is-active' : 'is-paused'}`}>{link.active ? '● Active' : 'Ⅱ Paused'}</span></div><p className="target-url" title={link.targetUrl}>{link.targetUrl}</p><small>{link.createdAt ? new Date(link.createdAt).toLocaleDateString() : 'Recently made'}</small></div>
-            <div className="link-actions"><button className="action-button" onClick={() => void copy(link)}>{copied === link.slug ? 'Copied!' : 'Copy'}</button><button className="action-button secondary" disabled={updateLink.isPending} onClick={() => updateLink.mutate({ slug: link.slug, active: !link.active })}>{link.active ? 'Pause' : 'Activate'}</button></div>
-          </article>
-        ))}</div>}
-      {updateLink.isError && <p className="form-message error" role="alert">{updateLink.error.message}</p>}
+        : <div className="link-list">{links.map((link) => <LinkCard key={link.id} link={link} queryKey={queryKey} onDeleted={setListNotice} />)}</div>}
     </section>
   )
 }

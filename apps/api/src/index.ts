@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { verifyFirebaseToken, type AuthenticatedUser } from './auth'
-import { createUserLink, listUserLinks, resolveShortLink, setUserLinkActive, type ShortLink } from './firestore'
+import { createUserLink, deleteUserLink, listUserLinks, resolveShortLink, setUserLinkActive, type ShortLink } from './firestore'
 
 type Bindings = {
   FIREBASE_PROJECT_ID?: string
@@ -96,6 +96,23 @@ app.patch('/api/links/:slug', async (c) => {
     return c.json({ link: linkWithUrl(c, link) })
   } catch {
     return c.json({ error: 'Could not update link' }, 502)
+  }
+})
+
+app.delete('/api/links/:slug', async (c) => {
+  const user = c.get('user')
+  if (user.role === 'admin') return c.json({ error: 'User dashboard only' }, 403)
+  const slug = c.req.param('slug')
+  if (!/^[a-zA-Z0-9]{8}$/.test(slug)) return c.json({ error: 'Invalid link' }, 400)
+  if (!c.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+    return c.json({ error: 'Link storage is not configured' }, 503)
+  }
+  try {
+    const deleted = await deleteUserLink(c.env, user.uid, slug)
+    if (!deleted) return c.json({ error: 'Link not found' }, 404)
+    return c.json({ deleted: true })
+  } catch {
+    return c.json({ error: 'Could not delete link' }, 502)
   }
 })
 

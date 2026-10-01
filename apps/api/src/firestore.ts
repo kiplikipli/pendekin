@@ -220,6 +220,19 @@ export async function setUserLinkActive(env: FirestoreBindings, uid: string, slu
   return parseLink(await response.json())
 }
 
+export async function deleteUserLink(env: FirestoreBindings, uid: string, slug: string): Promise<boolean> {
+  const existing = await getDocument(env, slug)
+  if (!existing || existing.document.fields?.ownerId?.stringValue !== uid) return false
+  const url = new URL(documentUrl(existing.account.project_id, slug))
+  if (existing.document.updateTime) url.searchParams.set('currentDocument.updateTime', existing.document.updateTime)
+  const response = await fetch(url, {
+    method: 'DELETE',
+    headers: { authorization: `Bearer ${existing.token}` },
+  })
+  if (!response.ok) throw new Error(`Firestore delete failed with HTTP ${response.status}`)
+  return true
+}
+
 export async function resolveShortLink(env: FirestoreBindings, slug: string): Promise<string | null> {
   const existing = await getDocument(env, slug)
   if (!existing || existing.document.fields?.active?.booleanValue !== true) return null

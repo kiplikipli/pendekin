@@ -7,6 +7,10 @@ export default defineConfig({
     proxy: {
       '/api': 'http://localhost:8787',
       '/r': 'http://localhost:8787',
+      '/docs': 'http://localhost:8787',
+      '/openapi.json': 'http://localhost:8787',
+      '/llms.txt': 'http://localhost:8787',
+      '/mcp': 'http://localhost:8787',
     },
   },
 })

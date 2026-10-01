@@ -111,6 +111,15 @@ h1, h2, h3 { font-family: 'Bricolage Grotesque', sans-serif; }
 .api-keys-heading h2 { margin: 2px 0 6px; font-size: clamp(2rem, 4vw, 2.7rem); letter-spacing: -.06em; }
 .api-keys-heading p { margin: 0; }
 .api-keys-doodle { color: #ef695b; font-size: 2.5rem; }
+.api-key-docs { margin-top: 24px; padding: 18px; border: 2px solid #17242b; border-radius: 12px; background: #fffdf7; }
+.api-key-docs h3 { margin: 0 0 7px; font-size: 1.3rem; letter-spacing: -.04em; }
+.api-key-docs p { max-width: 790px; margin: 0; line-height: 1.5; }
+.api-key-doc-links { display: flex; flex-wrap: wrap; gap: 9px; margin: 16px 0; padding: 0; list-style: none; }
+.api-key-doc-links a { display: block; min-height: 44px; padding: 9px 12px; border: 2px solid #17242b; border-radius: 9px; background: #d7ecf3; font-weight: 800; text-decoration: none; }
+.api-key-doc-links a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.api-key-doc-links code { display: block; margin-top: 3px; color: #42555f; font-size: .78rem; font-weight: 600; }
+.api-key-docs .api-key-docs-note { font-size: .88rem; overflow-wrap: anywhere; }
+.api-key-docs-note code { font-weight: 800; }
 .api-key-form { margin: 24px 0; }
 .api-key-form label, .api-key-issued label { display: block; margin-bottom: 9px; font-weight: 800; }
 .api-key-form-row, .api-key-token-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { apiRequest, type ApiKeyMetadata, type IssuedApiKey } from './api'
+import { apiBaseUrl, apiRequest, type ApiKeyMetadata, type IssuedApiKey } from './api'
 
 type Props = {
   uid: string
@@ -98,6 +98,17 @@ export function ApiKeysSection({ uid, getToken }: Props) {
           <p>Create a named key for each app. You can revoke a key at any time.</p>
         </div>
         <span className="api-keys-doodle" aria-hidden="true">✦</span>
+      </div>
+
+      <div className="api-key-docs" aria-labelledby="api-key-docs-title">
+        <h3 id="api-key-docs-title">Build with your key</h3>
+        <p>Use your key from a server-side app or an AI agent. It can manage only your links. Start with the link API guide, or give an agent the discovery index and OpenAPI contract.</p>
+        <ul className="api-key-doc-links">
+          <li><a href={`${apiBaseUrl ?? ''}/docs/links.md`} target="_blank" rel="noopener noreferrer">API docs <code>/docs/links.md</code></a></li>
+          <li><a href={`${apiBaseUrl ?? ''}/llms.txt`} target="_blank" rel="noopener noreferrer">AI discovery <code>/llms.txt</code></a></li>
+          <li><a href={`${apiBaseUrl ?? ''}/openapi.json`} target="_blank" rel="noopener noreferrer">OpenAPI contract <code>/openapi.json</code></a></li>
+        </ul>
+        <p className="api-key-docs-note">MCP tools for agents: <code>{apiBaseUrl ?? ''}/mcp</code>. Keep the key in the client’s secret storage, never in a URL.</p>
       </div>
 
       <form className="api-key-form" onSubmit={submit}>

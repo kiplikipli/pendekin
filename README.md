@@ -67,6 +67,8 @@ Replace the email and supply `serviceAccountJson` securely in that trusted envir
 
 ## External API keys
 
+For the complete integration contract, see [Link management API](docs/api.md).
+
 Create a named key from the **API keys** section of the signed-in dashboard. Pendekin shows the full key only once. Copy it into the external app's server-side secret storage; the dashboard can list or revoke keys but cannot recover their secret. Every key can list, create, activate, pause, and delete links owned by its user. Revoking a key makes the next request with it fail.
 
 Set the copied value as `PENDEKIN_API_KEY` in the external app's server-side environment. Send it in the Authorization header:
@@ -88,3 +90,14 @@ Links live in `pendekin/data/links/{code}`. Each record has `ownerId` (Firebase 
 The existing projects are `pendekin-web.pages.dev` and `pendekin-api.muhammadzulkifli79.workers.dev`. Both are connected to `kiplikipli/pendekin` on `main`.
 
 Deploy the Worker with `pnpm --filter @pendekin/api deploy` and set `FIREBASE_SERVICE_ACCOUNT_JSON` as a Worker secret. Build Pages from the repo root with `pnpm --filter @pendekin/web build`, output `apps/web/dist`, and set `VITE_API_BASE_URL` to the Worker's origin (without `/api`) using the committed Firebase web config (or set the four optional overrides). These are build-time values, so rebuild Pages when they change. Keep `PNPM_VERSION=11.28.3` in the Cloudflare build environment.
+
+## AI / Agent Integration
+
+The Worker serves its public API contract and guidance directly, without requiring clients to parse a documentation page:
+
+- `/openapi.json` — OpenAPI 3.1 contract with operation IDs, schemas, auth requirements, and error responses.
+- `/llms.txt` — lightweight discovery index with absolute URLs for the current Worker origin.
+- `/docs/*.md` — raw Markdown guides for getting started, authentication, links, errors, rate limits, and pagination. The source files are `apps/api/docs/*.md`; the link guide reuses `docs/api.md`. The API build embeds these sources into the Worker.
+- `/mcp` — official MCP Streamable HTTP endpoint with `list_links`, `create_link`, `set_link_active`, and `delete_link` tools. Send the same `Authorization: Bearer` credential used for REST. API keys remain limited to their owner's links; Firebase admin sessions remain barred from general-user link actions.
+
+For local verification, run `pnpm --filter @pendekin/api dev` and request `http://localhost:8787/openapi.json`, `http://localhost:8787/llms.txt`, or `http://localhost:8787/docs/getting-started.md`. Use `pnpm --filter @pendekin/api build` to regenerate embedded Markdown and check the Worker bundle. The unversioned `/api` routes are currently described as contract version `1.0.0`; no API-level pagination, rate limit, or idempotency key support is defined.

@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { verifyFirebaseToken, type AuthenticatedUser } from './auth'
-import { createUserLink, deleteUserLink, listUserLinks, resolveShortLink, setUserLinkActive, type ShortLink } from './firestore'
+import { verifyFirebaseToken, type AuthenticatedUser } from './auth.ts'
+import { createUserLink, deleteUserLink, listUserLinks, resolveShortLink, setUserLinkActive, type ShortLink } from './firestore.ts'
 
 type Bindings = {
   FIREBASE_PROJECT_ID?: string

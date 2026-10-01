@@ -2,6 +2,13 @@
 
 A pnpm workspace for a future URL shortener. The React SPA deploys to Cloudflare Pages and calls a Hono API on Cloudflare Workers. The Worker connects to Cloud Firestore through its REST API using a service account.
 
+## Live Cloudflare projects
+
+- Frontend: [pendekin-web.pages.dev](https://pendekin-web.pages.dev)
+- API: [pendekin-api.muhammadzulkifli79.workers.dev/api/health](https://pendekin-api.muhammadzulkifli79.workers.dev/api/health)
+
+Both projects are connected to `kiplikipli/pendekin` on `main`. The frontend's `/status` page checks the Worker and Firestore. Firestore will show `not_configured` until `FIREBASE_SERVICE_ACCOUNT_JSON` is added as a Worker secret.
+
 ## Workspace
 
 | App | Stack | Deploy target |

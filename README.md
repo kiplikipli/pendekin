@@ -31,10 +31,14 @@ Run `pnpm build` and `pnpm typecheck` for focused build and TypeScript checks. T
 1. The Firebase web app config for project `iseng-955ec` is in `apps/web/src/firebase.ts`. Its identifiers are public and can be overridden with `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, and `VITE_FIREBASE_APP_ID` for another project.
 2. Enable **Google** under Authentication → Sign-in method. Add `localhost` and your Pages hostname to Authentication → Settings → Authorized domains. Use hostnames without protocol or port.
 3. Enable Cloud Firestore. Create a service account with Firestore access and set its full JSON as the **Worker secret** `FIREBASE_SERVICE_ACCOUNT_JSON`. The Worker project ID is already `iseng-955ec` in `apps/api/wrangler.jsonc`. For local development, put the JSON on one line in `apps/api/.dev.vars`.
-4. In the project's **existing** Firestore ruleset, deny client access to the Pendekin links path (and check that no broader match grants access):
+4. In the project's **existing** Firestore ruleset, deny client access to both Pendekin's link and API-key paths (and check that no broader match grants access):
 
    ```text
    match /pendekin/data/links/{code} {
+     allow read, write: if false;
+   }
+
+   match /pendekin/data/apiKeys/{id} {
      allow read, write: if false;
    }
    ```
@@ -59,7 +63,21 @@ await getAuth().setCustomUserClaims(user.uid, {
 })
 ```
 
-Replace the email and supply `serviceAccountJson` securely in that trusted environment. Custom claim changes appear after the user signs in again or refreshes their ID token. The Worker verifies the signed token before trusting the role. Admin access is not based on a frontend flag.
+Replace the email and supply `serviceAccountJson` securely in that trusted environment. Custom claim changes appear after the user signs in again or refreshes their ID token. The Worker verifies the signed token before trusting the role. Admin access is not based on a frontend flag. Revoke that user's API keys before changing their admin claim. If a Firebase account is disabled or deleted outside Pendekin, its API keys remain active until revoked. If the user can no longer sign in, use trusted Firestore admin tooling to delete that user's records from `pendekin/data/apiKeys` by matching `ownerId` to their UID.
+
+## External API keys
+
+Create a named key from the **API keys** section of the signed-in dashboard. Pendekin shows the full key only once. Copy it into the external app's server-side secret storage; the dashboard can list or revoke keys but cannot recover their secret. Every key can list, create, activate, pause, and delete links owned by its user. Revoking a key makes the next request with it fail.
+
+Set the copied value as `PENDEKIN_API_KEY` in the external app's server-side environment. Send it in the Authorization header:
+
+```sh
+curl -H "Authorization: Bearer $PENDEKIN_API_KEY" "https://pendekin-api.muhammadzulkifli79.workers.dev/api/links"
+
+curl -X POST "https://pendekin-api.muhammadzulkifli79.workers.dev/api/links" -H "Authorization: Bearer $PENDEKIN_API_KEY" -H "Content-Type: application/json" -d '{"targetUrl":"https://example.com"}'
+```
+
+Use the same header with `PATCH /api/links/{slug}` and `DELETE /api/links/{slug}` to activate, pause, or delete an owned link. Do not put API keys in URLs or query parameters.
 
 ## Firestore link records
 

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Navigate } from '@tanstack/react-router'
 import { apiRequest, type Profile, type ShortLink } from './api'
+import { ApiKeysSection } from './api-keys'
 import { useAuth } from './auth'
 import { useSignInDialog } from './sign-in-modal'
 
@@ -217,6 +218,7 @@ function LinkDashboard({ profile }: { profile: Profile }) {
         : linksQuery.isError ? <div className="empty-state error" role="alert">{linksQuery.error.message}</div>
         : links.length === 0 ? <div className="empty-state"><span aria-hidden="true">✦</span><h3>Nothing here yet!</h3><p>Your first tiny link will show up right here.</p></div>
         : <div className="link-list">{links.map((link) => <LinkCard key={link.id} link={link} queryKey={queryKey} onDeleted={setListNotice} />)}</div>}
+      <ApiKeysSection uid={profile.uid} getToken={() => user!.getIdToken()} />
     </section>
   )
 }

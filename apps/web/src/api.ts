@@ -29,6 +29,17 @@ export type Profile = {
   role: 'admin' | 'user'
 }
 
+export type ApiKeyMetadata = {
+  id: string
+  name: string
+  createdAt: string
+}
+
+export type IssuedApiKey = {
+  key: ApiKeyMetadata
+  token: string
+}
+
 export type ShortLink = {
   id: string
   slug: string

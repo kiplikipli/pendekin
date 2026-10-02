@@ -3,6 +3,12 @@
   "name": "pendekin-api",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
+  "observability": {
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    }
+  },
   "vars": {
     "FIREBASE_PROJECT_ID": "iseng-955ec",
     "SHORT_URL_ORIGIN": "https://pendekin-web.pages.dev"

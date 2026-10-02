@@ -8,7 +8,7 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
-    "deploy": "pnpm build && wrangler pages deploy dist --project-name=pendekin-web"
+    "deploy": "pnpm build && wrangler --cwd=../.. pages deploy apps/web/dist --project-name=pendekin-web"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.104.0",

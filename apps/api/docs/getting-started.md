@@ -6,7 +6,7 @@ Pendekin creates and manages short links. The current API is unversioned and its
 
 - Use REST for direct HTTP integrations.
 - Use the MCP endpoint at `/mcp` for agent tools. It exposes the same four link actions and uses the same bearer credential and ownership rules.
-- Use `GET /r/{slug}` without authentication to follow an active short link.
+- Open the `shortUrl` returned by link operations without authentication to follow an active short link.
 
 ## First request
 

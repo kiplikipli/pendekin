@@ -6,6 +6,7 @@ const FIRESTORE_SCOPE = 'https://www.googleapis.com/auth/datastore'
 export type FirestoreBindings = {
   FIREBASE_PROJECT_ID?: string
   FIREBASE_SERVICE_ACCOUNT_JSON?: string
+  SHORT_URL_ORIGIN?: string
 }
 
 type ServiceAccount = {

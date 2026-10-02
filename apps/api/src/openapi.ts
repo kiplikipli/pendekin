@@ -139,7 +139,7 @@ export function openApiDocument(baseUrl: string) {
           id: { type: 'string', description: 'Storage ID; use slug in API paths.' },
           slug: { type: 'string', pattern: '^[a-zA-Z0-9]{8}$', description: 'Generated short code.' },
           targetUrl: { type: 'string', format: 'uri', description: 'Normalized destination.' },
-          shortUrl: { type: 'string', format: 'uri', description: 'Public redirect URL on this Worker origin.' },
+          shortUrl: { type: 'string', format: 'uri', description: 'Public redirect URL on the configured web or custom-domain origin.' },
           active: { type: 'boolean', description: 'Whether the redirect is enabled.' },
           createdAt: { type: ['string', 'null'], format: 'date-time', description: 'Null for legacy records without a creation timestamp.' },
         } },

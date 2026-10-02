@@ -1,2 +1,4 @@
 # Download a service account JSON key from your Firebase project and paste it on one line.
 FIREBASE_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"iseng-955ec","client_email":"replace-me","private_key":"replace-me"}
+# Override the Worker setting so local links open through Vite's /r proxy.
+SHORT_URL_ORIGIN=http://localhost:5173

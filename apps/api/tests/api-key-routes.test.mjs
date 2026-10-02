@@ -200,7 +200,7 @@ test('API preflight responses also disable caching', async () => {
 })
 
 test('API key link operations use the owner UID and cannot change another user links', async () => {
-  const env = testEnvironment()
+  const env = { ...testEnvironment(), SHORT_URL_ORIGIN: 'https://go.example' }
   const firestore = mockFirestore([
     ['pendekin/data/links/alice123', linkDocument('alice123', 'alice')],
     ['pendekin/data/links/bob12345', linkDocument('bob12345', 'bob')],
@@ -214,6 +214,7 @@ test('API key link operations use the owner UID and cannot change another user l
     const list = await app.request('/api/links', { headers }, env)
     const listed = await list.json()
     assert.deepEqual(listed.links.map((link) => link.slug), ['alice123'])
+    assert.equal(listed.links[0].shortUrl, 'https://go.example/r/alice123')
 
     const createdResponse = await app.request('/api/links', {
       method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
@@ -224,6 +225,7 @@ test('API key link operations use the owner UID and cannot change another user l
     const createdDocument = [...firestore.documents.values()].find((document) =>
       document.fields.slug.stringValue === created.link.slug)
     assert.equal(createdDocument.fields.ownerId.stringValue, 'alice')
+    assert.equal(created.link.shortUrl, 'https://go.example/r/' + created.link.slug)
 
     const writesBeforeForeignPatch = firestore.writes.length
     const foreignPatch = await app.request('/api/links/bob12345', {
@@ -239,13 +241,31 @@ test('API key link operations use the owner UID and cannot change another user l
         body: JSON.stringify({ active }),
       }, env)
       assert.equal(updated.status, 200)
-      assert.equal((await updated.json()).link.active, active)
+      const updatedLink = (await updated.json()).link
+      assert.equal(updatedLink.active, active)
+      assert.equal(updatedLink.shortUrl, 'https://go.example/r/alice123')
     }
 
     const foreignDelete = await app.request('/api/links/bob12345', { method: 'DELETE', headers }, env)
     assert.equal(foreignDelete.status, 404)
     const ownDelete = await app.request('/api/links/alice123', { method: 'DELETE', headers }, env)
     assert.equal(ownDelete.status, 200)
+  } finally {
+    firestore.restore()
+  }
+})
+
+test('invalid short URL origin fails before creating a link', async () => {
+  const env = { ...testEnvironment(), SHORT_URL_ORIGIN: 'https://go.example/path' }
+  const firestore = mockFirestore()
+  const app = createApp({ resolveKey: async () => 'alice' })
+  try {
+    const response = await app.request('/api/links', {
+      method: 'POST', headers: { ...authHeader('pk_valid'), 'content-type': 'application/json' },
+      body: JSON.stringify({ targetUrl: 'https://example.com' }),
+    }, env)
+    assert.equal(response.status, 503)
+    assert.equal(firestore.writes.length, 0)
   } finally {
     firestore.restore()
   }

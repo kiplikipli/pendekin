@@ -7,7 +7,7 @@ A comic-style URL shortener with a React frontend on Cloudflare Pages, a Hono AP
 - Google sign-in in an accessible modal with Firebase Authentication.
 - A general-user dashboard to create, copy, list, activate, and pause short links.
 - A deliberately empty admin page. The API recognizes the Firebase `admin: true` custom claim and prevents admins from using the general-user link endpoints.
-- Public redirects at `https://<worker-origin>/r/<code>`. Paused links return 404.
+- Public redirects at `https://<short-link-origin>/r/<code>`. The web Pages Function requests the Worker's public redirect endpoint; paused links return 404. Existing Worker-hosted links remain valid.
 - All Firestore queries and writes run in the Worker with its service account. The browser never imports or calls Firestore.
 - The former `/status` page and temporary Firestore status endpoint are removed. `/api/health` remains for operational checks.
 
@@ -22,7 +22,7 @@ cp apps/api/.dev.vars.example apps/api/.dev.vars
 pnpm dev
 ```
 
-The provided public Firebase web app config is already in `apps/web/src/firebase.ts`. Set `VITE_API_BASE_URL` in `apps/web/.env.local` if you are not using Vite's local proxy, and put the Worker service account JSON in `apps/api/.dev.vars`. Open `http://localhost:5173`. Vite proxies `/api` and `/r` to the local Worker at `http://localhost:8787`.
+The provided public Firebase web app config is already in `apps/web/src/firebase.ts`. Set `VITE_API_BASE_URL` in `apps/web/.env.local` if you are not using Vite's local proxy, and put the Worker service account JSON in `apps/api/.dev.vars`. Set `SHORT_URL_ORIGIN=http://localhost:5173` there as shown in `.dev.vars.example` so locally generated links use the web URL. Open `http://localhost:5173`. Vite proxies `/api` and `/r` to the local Worker at `http://localhost:8787`.
 
 Run `pnpm build` and `pnpm typecheck` for focused build and TypeScript checks. The API build is a Wrangler dry run.
 
@@ -83,13 +83,17 @@ Use the same header with `PATCH /api/links/{slug}` and `DELETE /api/links/{slug}
 
 ## Firestore link records
 
-Links live in `pendekin/data/links/{code}`. Each record has `ownerId` (Firebase UID), `slug`, `targetUrl`, `active`, and `createdAt`. The Worker scopes list and status changes to the verified UID. Generated short URLs use the Worker's public origin; connect a custom domain to the Worker later if you want a shorter branded domain.
+Links live in `pendekin/data/links/{code}`. Each record has `ownerId` (Firebase UID), `slug`, `targetUrl`, `active`, and `createdAt`. The Worker scopes list and status changes to the verified UID. The Worker builds returned `shortUrl` values from its `SHORT_URL_ORIGIN` setting. Changing that origin changes URLs returned for existing records too; no data migration is needed. Previously shared Worker-origin links keep redirecting.
 
 ## Cloudflare deployment
 
 The existing projects are `pendekin-web.pages.dev` and `pendekin-api.muhammadzulkifli79.workers.dev`. Both are connected to `kiplikipli/pendekin` on `main`.
 
-Deploy the Worker with `pnpm --filter @pendekin/api deploy` and set `FIREBASE_SERVICE_ACCOUNT_JSON` as a Worker secret. Build Pages from the repo root with `pnpm --filter @pendekin/web build`, output `apps/web/dist`, and set `VITE_API_BASE_URL` to the Worker's origin (without `/api`) using the committed Firebase web config (or set the four optional overrides). These are build-time values, so rebuild Pages when they change. Keep `PNPM_VERSION=11.28.3` in the Cloudflare build environment.
+Set `FIREBASE_SERVICE_ACCOUNT_JSON` as a Worker secret. Build Pages from the repo root with `pnpm --filter @pendekin/web build`, output `apps/web/dist`, and set `VITE_API_BASE_URL` to the Worker's origin (without `/api`) using the committed Firebase web config (or set the four optional overrides). These are build-time values, so rebuild Pages when they change. Keep `PNPM_VERSION=11.28.3` in the Cloudflare build environment.
+
+The Pages project must use the repository root as its project root so Cloudflare discovers `functions/r/[slug].js`. Deploy Pages first, then verify `https://pendekin-web.pages.dev/r/<active-slug>` redirects and a paused slug returns 404. The Pages Function calls the Worker's public `/r/<slug>` endpoint. If the Worker origin changes, set the Pages Function environment variable `API_REDIRECT_ORIGIN` to its new origin; otherwise the current Worker origin is used. `apps/api/wrangler.jsonc` sets `SHORT_URL_ORIGIN` to `https://pendekin-web.pages.dev`; deploy the Worker with `pnpm --filter @pendekin/api run deploy` after the Pages route is live. Keep `VITE_API_BASE_URL` pointed at the API Worker.
+
+To use a custom domain, attach it to the Pages project, verify its `/r/<slug>` route, then change `SHORT_URL_ORIGIN` in `apps/api/wrangler.jsonc` to that domain's full origin (for example, `https://go.example.com`) and redeploy the Worker. Use only a scheme and host, with no path, query, or fragment. The Pages Function will serve the same route on the custom domain without code changes.
 
 ## AI / Agent Integration
 

@@ -22,7 +22,7 @@ Every returned link has this shape:
   "id": "a1b2c3d4",
   "slug": "a1b2c3d4",
   "targetUrl": "https://example.com/page",
-  "shortUrl": "https://pendekin-api.muhammadzulkifli79.workers.dev/r/a1b2c3d4",
+  "shortUrl": "https://pendekin-web.pages.dev/r/a1b2c3d4",
   "active": true,
   "createdAt": "2026-10-01T08:00:00.000Z"
 }
@@ -33,7 +33,7 @@ Every returned link has this shape:
 | `id` | string | Internal link ID. Use `slug` for route paths. |
 | `slug` | string | Eight-character alphanumeric short code. |
 | `targetUrl` | string | Destination URL. |
-| `shortUrl` | string | Public redirect URL on the Worker origin. |
+| `shortUrl` | string | Public redirect URL on the configured web or custom-domain origin. |
 | `active` | boolean | `false` pauses the redirect while retaining the link. |
 | `createdAt` | string or `null` | Creation timestamp in ISO 8601 format, or `null` for a record without a timestamp. |
 
@@ -83,7 +83,7 @@ Replace `a1b2c3d4` with the `slug` from a create or list response. Treat the cre
 
 ## Public redirect
 
-`GET /r/{slug}` needs no API key. An active link responds with `302` and a `Location` header pointing to `targetUrl`. A paused, missing, or invalid link responds with `404`.
+Open the returned `shortUrl` on the web or custom-domain origin. `GET /r/{slug}` needs no API key. The Pages Function calls the Worker's public redirect endpoint; an active link responds with `302` and a `Location` header pointing to `targetUrl`. A paused, missing, or invalid link responds with `404`. The Worker-origin `/r/{slug}` remains available for previously shared links.
 
 ## Errors and key lifecycle
 

@@ -99,7 +99,7 @@ function LinkCard({ link, queryKey, onDeleted }: { link: ShortLink; queryKey: st
         </div>
         <div className="destination">
           <span className="destination-host">{hostname}</span>
-          <p id={'destination-' + link.slug} className={'target-url ' + (expanded ? 'is-expanded' : '')}>{link.targetUrl}</p>
+          <p id={'destination-' + link.slug} className="target-url" hidden={!expanded}>{link.targetUrl}</p>
           <button className="text-button" type="button" aria-controls={'destination-' + link.slug} aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
             {expanded ? 'Hide full URL' : 'Show full URL'}
           </button>

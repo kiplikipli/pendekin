@@ -147,8 +147,7 @@ h1, h2, h3 { font-family: 'Bricolage Grotesque', sans-serif; }
 .is-paused { background: #f7d1c9; }
 .destination { margin: 12px 0 8px; }
 .destination-host { display: block; color: #354b54; font-size: .88rem; font-weight: 800; overflow-wrap: anywhere; }
-.target-url { display: -webkit-box; overflow: hidden; margin: 3px 0 2px; color: #4f6269; line-height: 1.45; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-.target-url.is-expanded { display: block; }
+.target-url { margin: 3px 0 2px; color: #4f6269; line-height: 1.45; overflow-wrap: anywhere; }
 .text-button { min-height: 44px; padding: 5px 0; border: 0; background: none; color: #17242b; font-size: .85rem; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
 .link-card small { color: #65737a; font-weight: 700; }
 .link-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }

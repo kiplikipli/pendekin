@@ -7,6 +7,7 @@ import { CopyButton } from './copy-button'
 import { ActionIcon } from './action-icon'
 import { useAuth } from './auth'
 import { useSignInDialog } from './sign-in-modal'
+import { getLinkPage } from './link-pagination'
 
 export function HomePage() {
   const { profile } = useAuth()
@@ -152,6 +153,8 @@ function LinkDashboard({ profile }: { profile: Profile }) {
   const [createdLink, setCreatedLink] = useState<ShortLink | null>(null)
   const [createdCopyMessage, setCreatedCopyMessage] = useState('')
   const [listNotice, setListNotice] = useState('')
+  const [page, setPage] = useState(1)
+  const listHeadingRef = useRef<HTMLHeadingElement>(null)
   const listNoticeRef = useRef<HTMLParagraphElement>(null)
   useEffect(() => { if (listNotice) listNoticeRef.current?.focus() }, [listNotice])
   const queryKey = ['links', profile.uid]
@@ -167,6 +170,7 @@ function LinkDashboard({ profile }: { profile: Profile }) {
       body: JSON.stringify({ targetUrl: url }),
     }),
     onSuccess: ({ link }) => {
+      setPage(1)
       setTargetUrl('')
       setCreatedLink(link)
       setCreatedCopyMessage('')
@@ -177,7 +181,14 @@ function LinkDashboard({ profile }: { profile: Profile }) {
   })
 
   const links = linksQuery.data?.links ?? []
+  const pagination = getLinkPage(links, page)
+  useEffect(() => { setPage(pagination.page) }, [pagination.page])
   const activeCount = links.filter((link) => link.active).length
+  const changePage = (nextPage: number) => {
+    setPage(nextPage)
+    listHeadingRef.current?.focus()
+    listHeadingRef.current?.scrollIntoView({ block: 'start' })
+  }
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (targetUrl.trim()) {
@@ -200,12 +211,22 @@ function LinkDashboard({ profile }: { profile: Profile }) {
           {createdCopyMessage && <p className="error" role="alert">{createdCopyMessage}</p>}
         </div>}
       </form>
-      <div className="list-heading"><div><h2>All your links</h2><p>{links.length} total · {activeCount} active</p></div><span className="list-doodle" aria-hidden="true">✳</span></div>
+      <div className="list-heading"><div><h2 ref={listHeadingRef} tabIndex={-1}>All your links</h2><p>{links.length} total · {activeCount} active</p></div><span className="list-doodle" aria-hidden="true">✳</span></div>
       {listNotice && <p ref={listNoticeRef} tabIndex={-1} className="list-notice" role="status">{listNotice}</p>}
       {linksQuery.isPending ? <div className="empty-state">Gathering your links…</div>
         : linksQuery.isError ? <div className="empty-state error" role="alert">{linksQuery.error.message}</div>
         : links.length === 0 ? <div className="empty-state"><span aria-hidden="true">✦</span><h3>Nothing here yet!</h3><p>Your first tiny link will show up right here.</p></div>
-        : <div className="link-list">{links.map((link) => <LinkCard key={link.id} link={link} queryKey={queryKey} onDeleted={setListNotice} />)}</div>}
+        : <>
+          <div className="link-list" id="all-links-list">{pagination.links.map((link) => <LinkCard key={link.id} link={link} queryKey={queryKey} onDeleted={setListNotice} />)}</div>
+          {pagination.pageCount > 1 && <nav className="link-pagination" aria-label="Links pagination">
+            <p className="pagination-range" role="status">Showing {pagination.start}–{pagination.end} of {links.length} links</p>
+            <div className="pagination-controls">
+              <button className="action-button secondary" type="button" aria-controls="all-links-list" disabled={pagination.page === 1} onClick={() => changePage(pagination.page - 1)}>Previous</button>
+              <span className="pagination-page">Page {pagination.page} of {pagination.pageCount}</span>
+              <button className="action-button secondary" type="button" aria-controls="all-links-list" disabled={pagination.page === pagination.pageCount} onClick={() => changePage(pagination.page + 1)}>Next</button>
+            </div>
+          </nav>}
+        </>}
       <ApiKeysSection uid={profile.uid} getToken={() => user!.getIdToken()} />
     </section>
   )

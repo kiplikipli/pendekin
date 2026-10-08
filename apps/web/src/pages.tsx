@@ -105,8 +105,11 @@ function LinkCard({ link, queryKey, onDeleted }: { link: ShortLink; queryKey: st
             {expanded ? 'Hide full URL' : 'Show full URL'}
           </button>
         </div>
-        {link.active ? <small>{link.createdAt ? new Date(link.createdAt).toLocaleDateString() : 'Date unavailable'}</small>
-          : <small>Paused links do not redirect · {link.createdAt ? new Date(link.createdAt).toLocaleDateString() : 'Date unavailable'}</small>}
+        <small className="link-date">
+          {!link.active && <span className="link-paused-note">Paused links do not redirect · </span>}
+          <span className="link-date-label">Created </span>
+          {link.createdAt ? new Date(link.createdAt).toLocaleDateString() : 'Date unavailable'}
+        </small>
       </div>
       <div className="link-actions">
         <CopyButton value={link.shortUrl} label="Copy" ariaLabel={'Copy ' + link.shortUrl} iconOnly

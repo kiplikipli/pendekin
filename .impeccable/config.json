@@ -1,0 +1,26 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "*",
+        "files": [
+          "apps/web/src/styles.css"
+        ],
+        "createdAt": "2026-10-08T06:05:11.267Z",
+        "reason": "Agent review: reported header and footer selectors at lines 17 and 27 have divider borders and no border-radius; false positives. Existing outlined rounded controls also follow the established design."
+      },
+      {
+        "rule": "overused-font",
+        "value": "arial",
+        "files": [
+          "apps/web/src/styles.css"
+        ],
+        "createdAt": "2026-10-08T06:05:11.380Z",
+        "reason": "Agent review: Arial is confined to the Google sign-in G mark; domain-appropriate brand glyph styling. Main typography uses Bricolage Grotesque and DM Sans."
+      }
+    ]
+  }
+}

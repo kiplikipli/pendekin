@@ -1,9 +1,11 @@
 import { useRef, useState } from 'react'
+import { ActionIcon } from './action-icon'
 
-export function CopyButton({ value, label, ariaLabel = label, onSuccess, onError }: {
+export function CopyButton({ value, label, ariaLabel = label, iconOnly = false, onSuccess, onError }: {
   value: string
   label: string
   ariaLabel?: string
+  iconOnly?: boolean
   onSuccess: () => void
   onError: () => void
 }) {
@@ -29,11 +31,13 @@ export function CopyButton({ value, label, ariaLabel = label, onSuccess, onError
   }
 
   return (
-    <button className={'action-button copy-button' + (copied ? ' is-copied' : '')} type="button"
+    <button className={'action-button copy-button' + (iconOnly ? ' icon-button' : '') + (copied ? ' is-copied' : '')} type="button"
       aria-label={copied ? 'Copied to clipboard' : ariaLabel} title={copied ? 'Copied to clipboard' : ariaLabel}
       disabled={copied || copying} onClick={() => void copy()}>
-      <span className="copy-button-label" aria-hidden="true" style={{ visibility: copied ? 'hidden' : 'visible' }}>{label}</span>
-      {copied && <svg className="copy-check" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg>}
+      {iconOnly ? <ActionIcon name={copied ? 'check' : 'copy'} /> : <>
+        <span className="copy-button-label" aria-hidden="true" style={{ visibility: copied ? 'hidden' : 'visible' }}>{label}</span>
+        {copied && <ActionIcon name="check" className="copy-check" />}
+      </>}
     </button>
   )
 }

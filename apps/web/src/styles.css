@@ -153,6 +153,7 @@ h1, h2, h3 { font-family: 'Bricolage Grotesque', sans-serif; }
 .link-card small { color: #65737a; font-weight: 700; }
 .link-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
 .action-button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 13px; border: 2px solid #17242b; border-radius: 8px; background: #ffd84c; box-shadow: 2px 2px 0 #17242b; color: #17242b; font-weight: 800; }
+.action-button.icon-button { width: 44px; height: 44px; padding: 8px; flex: 0 0 44px; }
 .action-button.secondary { background: #fff; }
 .action-button.danger { background: #f7d1c9; }
 .action-button.pause { background: #f7d1c9; }
@@ -161,20 +162,14 @@ h1, h2, h3 { font-family: 'Bricolage Grotesque', sans-serif; }
 .copy-button { position: relative; }
 .copy-check { position: absolute; }
 .copy-button.is-copied:disabled { background: #cceca9; cursor: default; opacity: 1; box-shadow: none; }
-.link-more { position: relative; }
-.link-more[open] { z-index: 2; }
-.link-more summary { list-style: none; cursor: pointer; }
-.link-more summary::-webkit-details-marker { display: none; }
 .link-actions .action-button { transition: background-color .15s ease, box-shadow .15s ease; }
 @media (hover: hover) and (pointer: fine) {
   .link-actions .action-button:hover:not(:disabled) { box-shadow: 1px 1px 0 #17242b; }
   .link-actions .copy-button:hover:not(:disabled) { background: #f5c82f; }
   .link-actions .action-button.pause:hover:not(:disabled) { background: #f3b7ac; }
   .link-actions .action-button.activate:hover:not(:disabled) { background: #b8df8e; }
-  .link-more summary:hover { background: #eaf0f3; }
+  .link-actions .action-button.danger:hover:not(:disabled) { background: #f3b7ac; }
 }
-.link-more-menu { position: absolute; top: calc(100% + 7px); right: 0; min-width: 150px; padding: 5px; border: 2px solid #17242b; border-radius: 9px; background: #fff; box-shadow: 3px 3px 0 #17242b; }
-.link-more-menu button { width: 100%; min-height: 44px; padding: 8px 10px; border: 0; border-radius: 5px; background: #f7d1c9; color: #17242b; font-weight: 800; text-align: left; white-space: nowrap; }
 .link-feedback { width: 100%; margin: 0; font-size: .88rem; font-weight: 700; }
 .delete-confirm { width: 100%; padding: 16px; border: 2px solid #17242b; border-radius: 10px; background: #fff7f2; }
 .delete-confirm p { margin: 0 0 12px; line-height: 1.5; overflow-wrap: anywhere; }
@@ -212,8 +207,6 @@ h1, h2, h3 { font-family: 'Bricolage Grotesque', sans-serif; }
   .create-row { flex-direction: column; }
   .link-card { align-items: stretch; flex-direction: column; flex-wrap: nowrap; }
   .link-actions { justify-content: flex-start; width: 100%; }
-  .link-actions > .action-button, .link-more { flex: 1; }
-  .link-more summary { width: 100%; }
   .created-link .action-button { width: 100%; }
   .api-keys { padding: 20px; }
   .api-keys-doodle { display: none; }

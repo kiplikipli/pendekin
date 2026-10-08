@@ -4,6 +4,7 @@ import { Link, Navigate } from '@tanstack/react-router'
 import { apiRequest, type Profile, type ShortLink } from './api'
 import { ApiKeysSection } from './api-keys'
 import { CopyButton } from './copy-button'
+import { ActionIcon } from './action-icon'
 import { useAuth } from './auth'
 import { useSignInDialog } from './sign-in-modal'
 
@@ -51,28 +52,9 @@ function LinkCard({ link, queryKey, onDeleted }: { link: ShortLink; queryKey: st
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [notice, setNotice] = useState('')
   const [noticeError, setNoticeError] = useState(false)
-  const moreRef = useRef<HTMLDetailsElement>(null)
+  const deleteButtonRef = useRef<HTMLButtonElement>(null)
   const confirmRef = useRef<HTMLButtonElement>(null)
   useEffect(() => { if (confirmDelete) confirmRef.current?.focus() }, [confirmDelete])
-  useEffect(() => {
-    const closeOutside = (event: PointerEvent) => {
-      const menu = moreRef.current
-      if (menu?.open && event.target instanceof Node && !menu.contains(event.target)) menu.open = false
-    }
-    const closeOnEscape = (event: KeyboardEvent) => {
-      const menu = moreRef.current
-      if (event.key === 'Escape' && menu?.open) {
-        menu.open = false
-        menu.querySelector('summary')?.focus()
-      }
-    }
-    document.addEventListener('pointerdown', closeOutside)
-    document.addEventListener('keydown', closeOnEscape)
-    return () => {
-      document.removeEventListener('pointerdown', closeOutside)
-      document.removeEventListener('keydown', closeOnEscape)
-    }
-  }, [])
   let hostname = link.targetUrl
   try {
     hostname = new URL(link.targetUrl).hostname
@@ -126,30 +108,33 @@ function LinkCard({ link, queryKey, onDeleted }: { link: ShortLink; queryKey: st
           : <small>Paused links do not redirect · {link.createdAt ? new Date(link.createdAt).toLocaleDateString() : 'Date unavailable'}</small>}
       </div>
       <div className="link-actions">
-        <CopyButton value={link.shortUrl} label="Copy" ariaLabel={'Copy ' + link.shortUrl}
+        <CopyButton value={link.shortUrl} label="Copy" ariaLabel={'Copy ' + link.shortUrl} iconOnly
           onSuccess={() => { setNotice(''); setNoticeError(false) }}
           onError={() => { setNotice('Could not copy the short link. Select the address above and copy it instead.'); setNoticeError(true) }} />
-        <button className={'action-button ' + (link.active ? 'pause' : 'activate')} type="button"
+        <button className={'action-button icon-button ' + (link.active ? 'pause' : 'activate')} type="button"
           aria-label={(link.active ? 'Pause ' : 'Activate ') + link.shortUrl}
+          title={updateLink.isPending ? (link.active ? 'Pausing…' : 'Activating…') : (link.active ? 'Pause link' : 'Activate link')}
+          aria-busy={updateLink.isPending}
           disabled={updateLink.isPending || deleteLink.isPending || confirmDelete}
           onClick={() => { setNotice(''); updateLink.mutate(!link.active) }}>
-          {updateLink.isPending ? (link.active ? 'Pausing…' : 'Activating…') : (link.active ? 'Pause' : 'Activate')}
+          <ActionIcon name={link.active ? 'pause' : 'play'} />
         </button>
-        <details className="link-more" ref={moreRef}>
-          <summary className="action-button secondary" aria-label={'More actions for ' + link.shortUrl}>More</summary>
-          <div className="link-more-menu">
-            <button type="button" disabled={updateLink.isPending || deleteLink.isPending} onClick={() => { moreRef.current?.removeAttribute('open'); setConfirmDelete(true); setNotice('') }}>Delete link</button>
-          </div>
-        </details>
+        <button ref={deleteButtonRef} className="action-button icon-button danger" type="button"
+          aria-label={'Delete ' + link.shortUrl} title="Delete link" aria-expanded={confirmDelete}
+          aria-controls={'delete-confirm-' + link.slug}
+          disabled={updateLink.isPending || deleteLink.isPending || confirmDelete}
+          onClick={() => { deleteLink.reset(); setConfirmDelete(true); setNotice('') }}>
+          <ActionIcon name="trash" />
+        </button>
       </div>
       {(notice || updateLink.isError) && <p className={'link-feedback ' + (noticeError || updateLink.isError ? 'error' : '')}
         role={noticeError || updateLink.isError ? 'alert' : 'status'}>
         {updateLink.isError ? 'Could not change this link. Try again.' : notice}
       </p>}
-      {confirmDelete && <div className="delete-confirm">
+      {confirmDelete && <div className="delete-confirm" id={'delete-confirm-' + link.slug}>
         <p><strong>Delete this link permanently?</strong> {link.shortUrl} will stop redirecting to {hostname}. This cannot be undone.</p>
         <div className="delete-confirm-actions">
-          <button ref={confirmRef} className="action-button secondary" type="button" disabled={deleteLink.isPending} onClick={() => { setConfirmDelete(false); moreRef.current?.querySelector('summary')?.focus() }}>Keep link</button>
+          <button ref={confirmRef} className="action-button secondary" type="button" disabled={deleteLink.isPending} onClick={() => { setConfirmDelete(false); requestAnimationFrame(() => deleteButtonRef.current?.focus()) }}>Keep link</button>
           <button className="action-button danger" type="button" aria-label={'Delete ' + link.shortUrl + ' permanently'} disabled={deleteLink.isPending} onClick={() => deleteLink.mutate()}>
             {deleteLink.isPending ? 'Deleting…' : 'Delete permanently'}
           </button>

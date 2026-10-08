@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Navigate } from '@tanstack/react-router'
 import { apiRequest, type Profile, type ShortLink } from './api'
 import { ApiKeysSection } from './api-keys'
+import { CopyButton } from './copy-button'
 import { useAuth } from './auth'
 import { useSignInDialog } from './sign-in-modal'
 
@@ -53,6 +54,25 @@ function LinkCard({ link, queryKey, onDeleted }: { link: ShortLink; queryKey: st
   const moreRef = useRef<HTMLDetailsElement>(null)
   const confirmRef = useRef<HTMLButtonElement>(null)
   useEffect(() => { if (confirmDelete) confirmRef.current?.focus() }, [confirmDelete])
+  useEffect(() => {
+    const closeOutside = (event: PointerEvent) => {
+      const menu = moreRef.current
+      if (menu?.open && event.target instanceof Node && !menu.contains(event.target)) menu.open = false
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      const menu = moreRef.current
+      if (event.key === 'Escape' && menu?.open) {
+        menu.open = false
+        menu.querySelector('summary')?.focus()
+      }
+    }
+    document.addEventListener('pointerdown', closeOutside)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeOutside)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [])
   let hostname = link.targetUrl
   try {
     hostname = new URL(link.targetUrl).hostname
@@ -86,17 +106,6 @@ function LinkCard({ link, queryKey, onDeleted }: { link: ShortLink; queryKey: st
     },
   })
 
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(link.shortUrl)
-      setNotice('Short link copied.')
-      setNoticeError(false)
-    } catch {
-      setNotice('Could not copy the short link. Select the address above and copy it instead.')
-      setNoticeError(true)
-    }
-  }
-
   return (
     <article className="link-card">
       <div className="link-main">
@@ -117,8 +126,10 @@ function LinkCard({ link, queryKey, onDeleted }: { link: ShortLink; queryKey: st
           : <small>Paused links do not redirect · {link.createdAt ? new Date(link.createdAt).toLocaleDateString() : 'Date unavailable'}</small>}
       </div>
       <div className="link-actions">
-        <button className="action-button" type="button" aria-label={'Copy ' + link.shortUrl} onClick={() => void copy()}>Copy</button>
-        <button className="action-button secondary" type="button"
+        <CopyButton value={link.shortUrl} label="Copy" ariaLabel={'Copy ' + link.shortUrl}
+          onSuccess={() => { setNotice(''); setNoticeError(false) }}
+          onError={() => { setNotice('Could not copy the short link. Select the address above and copy it instead.'); setNoticeError(true) }} />
+        <button className={'action-button ' + (link.active ? 'pause' : 'activate')} type="button"
           aria-label={(link.active ? 'Pause ' : 'Activate ') + link.shortUrl}
           disabled={updateLink.isPending || deleteLink.isPending || confirmDelete}
           onClick={() => { setNotice(''); updateLink.mutate(!link.active) }}>
@@ -189,16 +200,6 @@ function LinkDashboard({ profile }: { profile: Profile }) {
       createLink.mutate(targetUrl.trim())
     }
   }
-  const copyCreated = async () => {
-    if (!createdLink) return
-    try {
-      await navigator.clipboard.writeText(createdLink.shortUrl)
-      setCreatedCopyMessage('Copied!')
-    } catch {
-      setCreatedCopyMessage('Could not copy. Select the short link and copy it instead.')
-    }
-  }
-
   return (
     <section className="dashboard">
       <div className="dashboard-heading"><div><span className="eyebrow">Your link space</span><h1>My tiny links<span className="title-dot">.</span></h1><p>Make a link, share it, or put it on pause.</p></div><div className="dashboard-sticker" aria-hidden="true">YOUR<br />LINKS! <span>✦</span></div></div>
@@ -208,8 +209,10 @@ function LinkDashboard({ profile }: { profile: Profile }) {
         {createLink.isError && <p className="form-message error" role="alert">{createLink.error.message}</p>}
         {createdLink && <div className="created-link" role="status">
           <div><strong>Your link is ready</strong><a href={createdLink.shortUrl} target="_blank" rel="noreferrer">{createdLink.shortUrl}</a></div>
-          <button className="action-button" type="button" onClick={() => void copyCreated()}>Copy link</button>
-          {createdCopyMessage && <p>{createdCopyMessage}</p>}
+          <CopyButton key={createdLink.id} value={createdLink.shortUrl} label="Copy link"
+            onSuccess={() => setCreatedCopyMessage('')}
+            onError={() => setCreatedCopyMessage('Could not copy. Select the short link and copy it instead.')} />
+          {createdCopyMessage && <p className="error" role="alert">{createdCopyMessage}</p>}
         </div>}
       </form>
       <div className="list-heading"><div><h2>All your links</h2><p>{links.length} total · {activeCount} active</p></div><span className="list-doodle" aria-hidden="true">✳</span></div>

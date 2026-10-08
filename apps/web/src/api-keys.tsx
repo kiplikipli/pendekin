@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiBaseUrl, apiRequest, type ApiKeyMetadata, type IssuedApiKey } from './api'
+import { CopyButton } from './copy-button'
 
 type Props = {
   uid: string
@@ -69,18 +70,6 @@ export function ApiKeysSection({ uid, getToken }: Props) {
     createKey.mutate(name.trim())
   }
 
-  const copyKey = async () => {
-    if (!issued) return
-    try {
-      await navigator.clipboard.writeText(issued.token)
-      setNotice('API key copied.')
-      setNoticeError(false)
-    } catch {
-      setNotice('Could not copy the API key. Select the field and copy it instead.')
-      setNoticeError(true)
-    }
-  }
-
   const cancelRevoke = () => {
     const id = revokeId
     setRevokeId(null)
@@ -145,7 +134,9 @@ export function ApiKeysSection({ uid, getToken }: Props) {
             autoComplete="off"
             spellCheck={false}
           />
-          <button className="action-button" type="button" onClick={() => void copyKey()}>Copy key</button>
+          <CopyButton key={issued.key.id} value={issued.token} label="Copy key"
+            onSuccess={() => { setNotice(''); setNoticeError(false) }}
+            onError={() => { setNotice('Could not copy the API key. Select the field and copy it instead.'); setNoticeError(true) }} />
           <button className="action-button secondary" type="button" onClick={() => setIssued(null)}>Done</button>
         </div>
       </div>}

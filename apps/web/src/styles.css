@@ -155,7 +155,12 @@ h1, h2, h3 { font-family: 'Bricolage Grotesque', sans-serif; }
 .action-button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 13px; border: 2px solid #17242b; border-radius: 8px; background: #ffd84c; box-shadow: 2px 2px 0 #17242b; color: #17242b; font-weight: 800; }
 .action-button.secondary { background: #fff; }
 .action-button.danger { background: #f7d1c9; }
+.action-button.pause { background: #f7d1c9; }
+.action-button.activate { background: #cceca9; }
 .action-button:disabled { cursor: not-allowed; opacity: .55; }
+.copy-button { position: relative; }
+.copy-check { position: absolute; }
+.copy-button.is-copied:disabled { background: #cceca9; cursor: default; opacity: 1; box-shadow: none; }
 .link-more { position: relative; }
 .link-more[open] { z-index: 2; }
 .link-more summary { list-style: none; cursor: pointer; }
